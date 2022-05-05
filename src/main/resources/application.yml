@@ -1,0 +1,93 @@
+server:
+  port: 8000
+jwt:
+  secret: multiplicationapp
+#actuator settings
+management:
+  endpoints:
+    web:
+      exposure:
+        exclude: "info,shutdown"
+    enable-by-default: false
+
+  endpoint:
+    health:
+      enabled: true
+    #info:
+      #enabled: true
+
+logging:
+  level:
+     org.springframework.cloud.gateway.handler.predicate: trace
+
+spring:
+  config:
+      import: "optional:consul:"
+  cloud:
+    loadbalancer:
+      ribbon:
+        # Not needed since we excluded the dependency, but
+        # still good to add it here for better readability
+        enabled: false
+    consul:
+      config:
+        prefix: config
+        format: yaml
+        default-context: defaults
+        data-key: application.yml
+      #host: consul
+      enabled: true
+      discovery:
+         #instance-id: ${spring.application.name}-${random.int(1000)}
+      # Get only services which are passing health check
+         query-passing: true
+        #instance-id: ${spring.application.name}-${random.int(1000)}
+    gateway:
+        routes:
+          - id: authentication
+            uri: lb://authentication/
+            predicates:
+              - Path=/auth/**
+          - id: multiplication
+            uri: lb://multiplication/
+            predicates:
+             - Path=/challenges/**,/attempts
+          - id: gamification
+            uri: lb://gamification/
+            predicates:
+             - Path=/attempt/leaders
+
+        globalcors:
+           cors-configurations:
+            '[/**]':
+             allowedOrigins:
+               - "*"
+             allowedHeaders:
+               - "*"
+             allowedMethods:
+               - "GET"
+               - "POST"
+               - "OPTIONS"
+           default-filters:
+             - name: Retry
+               args:
+                 retries: 3
+                 methods: GET,POST
+  application:
+      name: gateway
+  #profiles:
+    #active: docker
+  #rabbitmq:
+      #host: rabbitmq
+
+
+
+
+
+
+
+
+
+
+
+
